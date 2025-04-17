@@ -1070,7 +1070,7 @@ void drawDisplay() {
 
   // Draw supply voltage
   sprite.setTextColor(tftBlack, offWhite);
-  sprite.drawString("USB/BATT", 6, 72);
+  sprite.drawString("SUPPLY", 11, 72);
   sprite.drawString("PWR:" + String(supplyVoltage, 1) + "V", 6, 82); // supply voltage
 
   // Draw screen brightness level (under left info panel)
