@@ -3,9 +3,9 @@
 A input/output configuration system for the LilyGO T-Display-S3 featuring:
 - **Interactive Pin Configuration**:
   - Set pins as digital (pull-up) inputs
-  - ON/Off switches
+  - ON/OFF switches
   - Digital outputs
-  - Analog inputs (with adjustable value smooting)
+  - Analog inputs (with adjustable smoothing ranging from 0.00 to 1.0)
   - PWM outputs
   - Visual pin state indicators
 
@@ -19,7 +19,7 @@ A input/output configuration system for the LilyGO T-Display-S3 featuring:
   - Colour-coded pin types
   - Real-time state visualization
   - Contextual menu system
-  - System information display (uptime, FPS, CPU frequency, supply voltage)
+  - System information (uptime, FPS, CPU frequency, supply voltage, brightness level, analog smoothing)
 
 - **Power Management**:
   - Can be powered via USB or battery
