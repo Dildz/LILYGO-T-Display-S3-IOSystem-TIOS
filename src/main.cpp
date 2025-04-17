@@ -110,10 +110,10 @@ unsigned long startTime = 0;       // device startup time
 unsigned long lastFrameTime = 0;   // for FPS calculation
 float fps = 0;                     // current FPS value
 char uptimeString[9] = "00:00:00"; // HH:MM:SS uptime format
-unsigned long lastPowerRead = 0; // for battery monitoring
+unsigned long lastPowerRead = 0;   // for battery monitoring
 const unsigned long powerReadInterval = 5000; // 5sec
-int millivolts = 0;        // in mV
-float supplyVoltage = 0.0; // in V
+int millivolts = 0;           // in mV
+float supplyVoltage = 0.0;    // in V
 float smoothingFactor = 0.05; // smoothing factor (default 0.05 - range 0.00 to 1.0)
 
 // Pin label string arrays
@@ -163,6 +163,7 @@ void readEprom() {
   }
 
   smoothingFactor = EEPROM.readFloat(48);
+  
   if(smoothingFactor == 0xFF) { // first time use
     smoothingFactor = 0.05;     // set default
     EEPROM.writeFloat(48, smoothingFactor);
@@ -335,6 +336,7 @@ void findInputs() {
       n++;
     }
   }
+
   menuItems[3] = n;
 }
 
@@ -458,6 +460,7 @@ void setPins() {
       menuTextX = 62;
       menuTextY = 24 - 240;
     }
+
     sprite.drawString(firstMenu[menu][i], menuTextX, menuTextY+(i*15), 2);
   }
 
@@ -720,7 +723,6 @@ void setPins() {
       }
 
       //::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
-
       // Timer selection menu
       if(menu==0 && item==3 && menuAction==0) {
         menu = 5;
@@ -814,9 +816,9 @@ void setPins() {
         menu = 0;
       }
 
+      // Non-blocking 250ms delay
       if (millis() - lastActionTime > 250) {
           lastActionTime = millis();
-          // Continue with action
       }
 
       //::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
@@ -827,7 +829,7 @@ void setPins() {
         menuAction = 1;
       }
 
-      // Handle smoothing menu (menu 10)
+      // Handle smoothing menu
       if(menu==10 && item==0 && menuAction==0) { // BACK
         menu = 0;
         item = 0;
@@ -846,6 +848,7 @@ void setPins() {
   }
   else {
     rightButtonPressed = false;
+    
     // Clear wait flag if both buttons are released
     if(waitForButtonRelease && digitalRead(0)==1) {
       waitForButtonRelease = false;
@@ -911,8 +914,8 @@ void drawDisplay() {
   // Draw timer 1 labels
   sprite.setTextDatum(0);
   sprite.setTextColor(seaGreen, tftWhite);
-  sprite.drawString("ON " + String(timerIntervals[0][0]), 8, 25);
-  sprite.drawString("OFF " + String(timerIntervals[0][1]), 8, 35);
+  sprite.drawString("ON  - " + String(timerIntervals[0][0]), 12, 25);
+  sprite.drawString("OFF - " + String(timerIntervals[0][1]), 12, 35);
 
   // Draw timer 2 UI elements
   sprite.fillSmoothRoundRect(90, 20, 76, 28, 4, seaGreen, offWhite);
@@ -926,21 +929,21 @@ void drawDisplay() {
   sprite.setTextColor(tftWhite, seaGreen);
   sprite.setTextDatum(0);
   sprite.setTextColor(seaGreen, tftWhite);
-  sprite.drawString("ON " + String(timerIntervals[1][0]), 94, 25);
-  sprite.drawString("OFF " + String(timerIntervals[1][1]), 94, 35);
+  sprite.drawString("ON  - " + String(timerIntervals[1][0]), 98, 25);
+  sprite.drawString("OFF - " + String(timerIntervals[1][1]), 98, 35);
   sprite.setTextDatum(4);
   
-  // Draw pin type legend
+  // Draw pin type legend (top colour-coded labels)
   for(int i=0; i<5; i++) {
     sprite.fillSmoothRoundRect(6+i*32, 4, 30, 12, 2, typeColours[i], offWhite);
     sprite.setTextColor(tftWhite, typeColours[i]);
     sprite.drawString(pinTypeLabels[i], 6+i*32+30/2, 4+6); 
   }
 
-  // Draw all pins
+  // Draw all 24 pins in a grid layout
   for(int i=0; i<24; i++) {
-    // Calculate positions based on pin number
-    if(i<12) {
+    /// Position calculations for left/right columns
+    if(i<12) { // left column pins (positions 0-11)
       pinBoxX = fromLeft;
       pinBoxY = fromTop + i * 20;
       lineStartX = 4;
@@ -949,7 +952,7 @@ void drawDisplay() {
       sourceLabelX = 30;
       valueDisplayX = sourceLabelX - 8;
     }
-    else {
+    else { // right column pins (positions 12-23)
       pinBoxX = fromLeft + 32;
       pinBoxY = fromTop+(i-12)*20;
       lineStartX = 154, lineEndX = pinBoxX + width;
@@ -958,38 +961,38 @@ void drawDisplay() {
       valueDisplayX = sourceLabelX - 20;
     }
     
-    // Draw pin box
+    // Draw pin box (background + label)
     sprite.fillSmoothRoundRect(pinBoxX, pinBoxY, width, height, 2, pinColours[i], offWhite);
     sprite.setTextColor(tftWhite, pinColours[i]);
     sprite.drawString(pinLabels1[i], pinBoxX+width/2, pinBoxY+height/2, 2);
 
     // Draw additional elements for configured pins
     if(pinTypes[i] != 0) {
-      // Connection line
+      // Connection line to state indicator
       sprite.drawLine(lineStartX, pinBoxY+height/2, lineEndX, pinBoxY+height/2, stateColours[pinStates[i]]);
       sprite.drawLine(lineStartX, pinBoxY+height/2+1, lineEndX, pinBoxY+height/2+1, stateColours[pinStates[i]]);
 
-      // Pin type indicator
+      // Pin type indicator (small coloured box)
       sprite.fillSmoothRoundRect(lineStartX, pinBoxY+2, width-12, height-4, 2, typeColours[pinTypes[i] - 1]);
       sprite.setTextColor(tftWhite, typeColours[pinTypes[i] - 1]);
       sprite.drawString(pinTypeLabels[pinTypes[i] - 1].substring(0, 1), lineStartX+6, pinBoxY+3+((height-4) / 2));
 
-      // Analog pin value display
-      if(pinTypes[i] == 4) { // if analog pin
+      /// Special handling for different pin types:
+      if(pinTypes[i] == 4) { // analog pin value display
         sprite.fillSmoothRoundRect(valueDisplayX, pinBoxY+2, width+3, height-4, 4, typeColours[pinTypes[i] - 1]);
         sprite.setTextColor(tftWhite, typeColours[pinTypes[i] - 1]);
         sprite.drawString(String(pinStates[i]), valueDisplayX+14, 1+pinBoxY+height/2);
       }
 
       // PWM pin value display
-      if(pinTypes[i] == 5) { // if PWM pin
+      if(pinTypes[i] == 5) { // PWM pin value display - duty cycle (0-255)
         sprite.fillSmoothRoundRect(valueDisplayX, pinBoxY+2, width+3, height-4, 4, typeColours[pinTypes[i] - 1]);
         sprite.setTextColor(tftWhite, typeColours[pinTypes[i] - 1]);
         sprite.drawString(String(pinStates[i]), valueDisplayX+14, 1+pinBoxY+height/2);
       }
 
       // Output pin source label
-      if(pinTypes[i] == 3) {
+      if(pinTypes[i] == 3) { // shows what source is driving the output
         sprite.setTextColor(grey, offWhite);
         if(pinSources[i] > 100) {
           sprite.drawString("!" + String(pinLabels2[pinSources[i] - 100]), sourceLabelX, pinBoxY+4);
@@ -999,8 +1002,8 @@ void drawDisplay() {
         }
       }
       
-      // State indicator for non-PWM/Analog pins
-      if(pinTypes[i]<4) {
+      // State indicator for digital pins
+      if(pinTypes[i]<4) { // shows HIGH/LOW state as coloured circle with 1/0
         sprite.fillSmoothCircle(stateCircleX, pinBoxY+height/2, 5, stateColours[pinStates[i]], tftWhite);
         sprite.setTextColor(tftWhite, stateColours[pinStates[i]]);
         sprite.drawString(String(pinStates[i]), stateCircleX+1, 1+pinBoxY+height/2);
@@ -1042,7 +1045,7 @@ void drawDisplay() {
   sprite.setTextColor(tftWhite, typeColours[pinTypes[25] - 1]);
   sprite.drawString(String(pinStates[25]), 155, 306);
 
-  // Draw project name info
+  // Left info panel (TIOS branding)
   sprite.fillSmoothRoundRect(4, 212, 50, 58, 4, purple, offWhite);
   sprite.setTextDatum(0);
   sprite.setTextColor(tftWhite, purple);
@@ -1053,7 +1056,7 @@ void drawDisplay() {
   sprite.drawString("Output", 8, 249);
   sprite.drawString("System", 8, 259);
 
-  // Device info
+  // Right info panel (system info)
   sprite.fillSmoothRoundRect(117, 212, 50, 58, 4, purple, offWhite);
   sprite.loadFont(NotoSansBold15);
   sprite.setTextDatum(0);
@@ -1069,7 +1072,12 @@ void drawDisplay() {
   sprite.setTextColor(tftBlack, offWhite);
   sprite.drawString("USB/BATT", 6, 72);
   sprite.drawString("PWR:" + String(supplyVoltage, 1) + "V", 6, 82); // supply voltage
-  //sprite.drawString(String(supplyVoltage, 2) + "V", 12, 82);
+
+  // Draw screen brightness level (under left info panel)
+  sprite.drawString("SB:" + String(ledcRead(0)), 11, 272);
+
+  // Draw analog smoothing level (under right info panel)
+  sprite.drawString("AS:" + String(smoothingFactor), 121, 272);
 
   // Push the complete sprite to the display
   sprite.unloadFont();
@@ -1103,7 +1111,7 @@ void setup() {
   startTime = millis();
   lastFrameTime = millis();
 
-  // Take initial supply power reading
+  // Take initial supply voltage reading
   readSupplyVoltage();
 
   // Initialize display
@@ -1111,9 +1119,9 @@ void setup() {
   sprite.createSprite(170, 320); // portrait mode
 
   // Initialize backlight PWM
-  ledcSetup(0, 10000, 8);
-  ledcAttachPin(38, 0); // LCD backlight GPIO38
-  ledcWrite(0, 160);
+  ledcSetup(0, 10000, 8); // PWN channel, frequency, resolution
+  ledcAttachPin(38, 0);   // LCD backlight GPIO38, channel 0
+  ledcWrite(0, 150);      // channel 0, initial brightness (0-255)
 }
 
 // MAIN LOOP
