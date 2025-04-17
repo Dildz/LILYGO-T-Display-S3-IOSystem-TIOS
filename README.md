@@ -5,7 +5,7 @@ A input/output configuration system for the LilyGO T-Display-S3 featuring:
   - Set pins as digital (pull-up) inputs
   - ON/OFF switches
   - Digital outputs
-  - Analog inputs (with adjustable smoothing ranging from 0.00 to 1.0)
+  - Analog inputs (with adjustable smoothing ranging from 0.00 to 1.0 - default 0.05)
   - PWM outputs
   - Visual pin state indicators
 
