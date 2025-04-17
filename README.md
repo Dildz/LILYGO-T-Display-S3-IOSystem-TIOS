@@ -19,7 +19,8 @@ A input/output configuration system for the LilyGO T-Display-S3 featuring:
   - Colour-coded pin types
   - Real-time state visualization
   - Contextual menu system
-  - System information (uptime, FPS, CPU frequency, supply voltage, brightness level, analog smoothing)
+  - System information
+    - Uptime, FPS, CPU frequency (MHz), supply voltage, screen brightness (SB), analog smoothing (AS)
 
 - **Power Management**:
   - Can be powered via USB or battery
