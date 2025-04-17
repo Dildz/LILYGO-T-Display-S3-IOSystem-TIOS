@@ -20,7 +20,7 @@ Create display and sprite objects:
 TFT_eSPI lcd = TFT_eSPI();
 TFT_eSprite sprite = TFT_eSprite(&lcd);
 
-#define EEPROM_SIZE 48 // size of EEPROM storage
+#define EEPROM_SIZE 52 // size of EEPROM storage (was 48, need 4 more bytes for smoothing float)
 
 // Custom colours
 #define blue 0x297F      // converted from #2d2dff
@@ -77,7 +77,7 @@ int menuPins[18] = {50, 2, 3, 4, 5, 6, 7, 13, 14, 15, 16, 17, 18, 19, 24, 25, 26
 int menuPins2[18] = {0};
 int menuPins3[18] = {0};
 int menuPins4[18] = {0};
-int menuItems[10] = {5, 14, 7, 7, 3, 3, 4, 5, 5, 5};
+int menuItems[11] = {6, 14, 7, 7, 3, 3, 4, 5, 5, 5, 13};
 
 // UI position variables
 int pinBoxX, pinBoxY, lineStartX, lineEndX, stateCircleX, sourceLabelX, valueDisplayX;
@@ -114,6 +114,7 @@ unsigned long lastPowerRead = 0; // for battery monitoring
 const unsigned long powerReadInterval = 5000; // 5sec
 int millivolts = 0;        // in mV
 float supplyVoltage = 0.0; // in V
+float smoothingFactor = 0.05; // smoothing factor (default 0.05 - range 0.00 to 1.0)
 
 // Pin label string arrays
 String pinLabels1[28] = {
@@ -125,20 +126,21 @@ String pinLabels2[28] = {
 String pinTypeLabels[5] = {"INP", "SW", "OUT", "ANA", "PWM"};
 
 // Menu system string arrays
-String menuTitles[10] = {
-  "MENU", "SELECT PIN", "SELECT TYPE", "SET SOURCE", "PWM", "SET TIMERS", "", "", "MULTIPLIER", "BRIGHTNESS"
+String menuTitles[11] = {
+  "MENU", "SELECT PIN", "SELECT TYPE", "SET SOURCE", "PWM", "SET TIMERS", "", "", "MULTIPLIER", "BRIGHTNESS", "SMOOTHING"
 };
-String firstMenu[10][28] = {
-  {"EXIT", "Reset All", "Set Pin", "Set Timer", "Brightness", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", ""}, 
+String firstMenu[11][28] = {
+  {"EXIT", "Reset All", "Set Pin", "Set Timer", "Brightness", "Smoothing", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", ""},
   {"BACK", "43", "44", "18", "17", "21", "16", "1", "2", "3", "10", "11", "12", "13", "PB1", "PB2", "T1", "T2", "", "", "", "", "", "", "", "", "", ""},
   {"BACK", "NOT SET", "INP_PULLUP", "ON/OFF SW", "OUTPUT", "ANALOG ", "PWM", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", ""},
-  {"HIGH", "LOW", "T1", "!T1", "T2", "!T2", "PB1", "!PB1", "PB2", "!PB", "9", "9", "9", "9", "9", "9", "9", "10", "", "", "", "", "", "", "", "", "", ""},
+  {"HIGH", "LOW", "T1", "!T1", "T2", "!T2", "PB1", "!PB1", "PB2", "!PB2", "9", "9", "9", "9", "9", "9", "9", "10", "", "", "", "", "", "", "", "", "", ""},
   {"50", "100", "150"},
   {"BACK", "SET T1", "SET T2"},
   {"BACK", "ON TIME", "OFF TIME", "MULTIPLIER"},
   {"1", "50", "100", "150", "250"},
   {"1", "10", "100", "200", "250"},
-  {"50", "100", "150", "200", "250"}
+  {"50", "100", "150", "200", "250"},
+  {"BACK", "0.01", "0.05", "0.1", "0.2", "0.3", "0.4", "0.5", "0.6", "0.7", "0.8", "0.9", "1.0"}
 };
 
 
@@ -159,6 +161,13 @@ void readEprom() {
   for(int j=0; j<24; j++) {
     pinSources[j] = EEPROM.read(j+24);
   }
+
+  smoothingFactor = EEPROM.readFloat(48);
+  if(smoothingFactor == 0xFF) { // first time use
+    smoothingFactor = 0.05;     // set default
+    EEPROM.writeFloat(48, smoothingFactor);
+    EEPROM.commit();
+  }
 }
 
 // Function to write pin configurations to EEPROM
@@ -172,6 +181,9 @@ void writeEprom() {
     EEPROM.write(j+24, pinSources[j]);
     EEPROM.commit();
   }
+
+  EEPROM.writeFloat(48, smoothingFactor);
+  EEPROM.commit();
 }
 
 // Function to detach a pin and reset it's configuration
@@ -210,7 +222,6 @@ void setupPins() {
 // Function to read and process all pin states
 void readPins() {
   static int smoothedValues[28] = {0}; // smoothed analog values
-  const float smoothingFactor = 0.05;  // adjust as needed (range: 0.00 to 1.0)
   static unsigned long lastModeToggleTime = 0;
   pwmChannel = 1;
 
@@ -235,7 +246,8 @@ void readPins() {
         waitForButtonRelease = true;
         lastModeToggleTime = millis();
     }
-  } else {
+  }
+  else {
     // Only reset debounce when both buttons are released
     if(digitalRead(0) == 1 && digitalRead(14) == 1) {
         debounce = 0;
@@ -272,8 +284,9 @@ void readPins() {
 
       if(pinSources[i] >= 200) { // fixed value
         pinStates[i] = pinSources[i] - 200;
-        digitalWrite(pinLabels1[i].toInt(),pinStates[i]);
       }
+
+      digitalWrite(pinLabels1[i].toInt(),pinStates[i]);
     }
 
     if(pinTypes[i] == 4) { // analog input (smoothed)
@@ -474,7 +487,8 @@ void setPins() {
         selection = item;
       }
     }
-  } else {
+  }
+  else {
     leftButtonPressed = false;
     // Clear wait flag if both buttons are released
     if(waitForButtonRelease && digitalRead(14)==1) {
@@ -804,6 +818,30 @@ void setPins() {
           lastActionTime = millis();
           // Continue with action
       }
+
+      //::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+      // Analog Smoothing
+      if(menu==0 && item==5 && menuAction==0) {
+        menu = 10;
+        item = 0;
+        menuAction = 1;
+      }
+
+      // Handle smoothing menu (menu 10)
+      if(menu==10 && item==0 && menuAction==0) { // BACK
+        menu = 0;
+        item = 0;
+        menuAction = 1;
+      }
+
+      // Smoothing value selected
+      if(menu==10 && item>0 && menuAction==0) { 
+        smoothingFactor = firstMenu[10][item].toFloat();
+        menu = 0;
+        item = 0;
+        menuAction = 1;
+      }
+      //::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
     }
   }
   else {
@@ -952,11 +990,13 @@ void drawDisplay() {
 
       // Output pin source label
       if(pinTypes[i] == 3) {
-        sprite.setTextColor(grey, tftWhite);
-        if(pinSources[i] > 100)
+        sprite.setTextColor(grey, offWhite);
+        if(pinSources[i] > 100) {
           sprite.drawString("!" + String(pinLabels2[pinSources[i] - 100]), sourceLabelX, pinBoxY+4);
-        else
+        }
+        else {
           sprite.drawString(String(pinLabels2[pinSources[i]]), sourceLabelX, pinBoxY+4);
+        }
       }
       
       // State indicator for non-PWM/Analog pins
@@ -1052,18 +1092,9 @@ void setup() {
   pinMode(15, OUTPUT);
   digitalWrite(15, HIGH);
 
-  // Initialize display
-  lcd.init();
-  sprite.createSprite(170, 320); // portrait
-  
   // Initialize EEPROM
   EEPROM.begin(EEPROM_SIZE);
 
-  // Initialize backlight PWM
-  ledcSetup(0, 10000, 8);
-  ledcAttachPin(38, 0); // LCD backlight GPIO38
-  ledcWrite(0, 160);
-  
   // Load settings and setup pins
   readEprom();
   setupPins();
@@ -1074,6 +1105,15 @@ void setup() {
 
   // Take initial supply power reading
   readSupplyVoltage();
+
+  // Initialize display
+  lcd.init();
+  sprite.createSprite(170, 320); // portrait mode
+
+  // Initialize backlight PWM
+  ledcSetup(0, 10000, 8);
+  ledcAttachPin(38, 0); // LCD backlight GPIO38
+  ledcWrite(0, 160);
 }
 
 // MAIN LOOP
