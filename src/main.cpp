@@ -208,6 +208,8 @@ void setupPins() {
 
 // Function to read and process all pin states
 void readPins() {
+  static int smoothedValues[28] = {0}; // smoothed analog values
+  const float smoothingFactor = 0.1;   // adjust as needed (range: 0.0 to 1.0)
   static unsigned long lastModeToggleTime = 0;
   pwmChannel = 1;
 
@@ -274,7 +276,9 @@ void readPins() {
     }
 
     if(pinTypes[i] == 4) { // analog input
-      pinStates[i] = map(analogRead(pinLabels1[i].toInt()), 0, 4095, 0, 255);
+      int rawValue = analogRead(pinLabels1[i].toInt());
+      smoothedValues[i] = smoothedValues[i] * (1.0 - smoothingFactor) + rawValue * smoothingFactor;
+      pinStates[i] = map(smoothedValues[i], 0, 4095, 0, 255);
     }
 
     if(pinTypes[i] == 5) { // PWM output
