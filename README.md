@@ -25,7 +25,7 @@ A input/output configuration system for the LilyGO T-Display-S3 featuring:
 - **Power Management**:
   - Can be powered via USB or battery
   - Supply voltage monitoring
-  - Display brightness control
+  - Display brightness control from 50 to 250 (default 150)
 
 ## Hardware Configuration
 
