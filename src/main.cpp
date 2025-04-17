@@ -325,7 +325,7 @@ void findInputs() {
 }
 
 // Function to find all analog pins for menu system
-void findAnalogs() {
+void findMainAnalogs() {
   int m = 3;
   menuItems[4] = 3;
 
@@ -340,7 +340,7 @@ void findAnalogs() {
 }
 
 // Function to find all analog pins for timer menu
-void findAnalogs2() {
+void findTimerAnalogs() {
   int m = 5;
   menuItems[7] = m;
 
@@ -668,7 +668,7 @@ void setPins() {
       // PWM value selection menu
       if(menu==2 && item==6 && menuAction==0) { // output
         detach(menuPins[selection]);
-        findAnalogs();
+        findMainAnalogs();
         menu = 4;
         item = 0;
         menuAction = 1;
@@ -743,7 +743,7 @@ void setPins() {
       }
 
       if(menu==6 && item==1 && menuAction==0) { // timer ON
-        findAnalogs2();
+        findTimerAnalogs();
         menu = 7;
         menuTitles[7] = "ON TIME";
         item = 0;
@@ -752,7 +752,7 @@ void setPins() {
       } 
         
       if(menu==6 && item==2 && menuAction==0) { // timer OFF
-        findAnalogs2();
+        findTimerAnalogs();
         menu = 7;
         menuTitles[7] = "OFF TIME";
         item = 0;
