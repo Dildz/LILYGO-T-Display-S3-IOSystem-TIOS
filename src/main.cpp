@@ -52,6 +52,7 @@ unsigned long currentTime[2] = {0, 0};
 unsigned long timerIntervals[2][2] = {{1000, 500}, {300, 300}};
 
 // Pin configuration arrays
+//------------ {  G,   G, 43, 44, 18, 17, 21, 16,  NC,   G,   G,  3V,  3V, 1, 2, 3, 10, 11, 12, 13,  NC,  NC,  G,  5V)
 int pins[24] = {100, 100, 43, 44, 18, 17, 21, 16, 100, 100, 100, 100, 100, 1, 2, 3, 10, 11, 12, 13, 100, 100, 100, 100};
 int pinStates[28] = {0};
 int pinDebounce[28] = {0};
@@ -87,11 +88,11 @@ byte fromLeft = 58;
 byte width = 24;
 byte height = 17;
 
-// Pin type configuration (0 = not set, 1 = inp, 2 = pullup, 3 = out, 4 = ana, 5 = pwm, 6)
+// Pin type configuration arrays
 byte pinTypes[28] = {0, 0, 0, 0, 2, 4, 0, 3, 0, 0, 0, 0, 0, 0, 0, 0, 3, 0, 3, 5, 0, 0, 0, 0, 1, 2, 6, 6};
 byte pinSources[28] = {100, 100, 100, 100, 100, 100, 100, 124, 100, 100, 100, 100, 100, 100, 100, 100, 25, 100, 26, 5, 100, 100, 100, 100, 100, 100};
 
-// Timer configuration
+// Timer configuration arrays
 byte timerBaseValues[4] = {250, 250, 150, 150}; 
 byte timerMultipliers[4] = {10, 10, 10, 10};
 byte timerSources[4] = {0};
@@ -114,7 +115,7 @@ const unsigned long powerReadInterval = 5000; // 5sec
 int millivolts = 0;        // in mV
 float supplyVoltage = 0.0; // in V
 
-// Pin label strings
+// Pin label string arrays
 String pinLabels1[28] = {
   "G", "G", "43", "44", "18", "17", "21", "16", "NC", "G", "G", "3V", "3V", "1", "2", "3", "10", "11", "12", "13", "NC", "NC", "G", "5V", "0", "14", "T1", "T2"
 };
@@ -123,7 +124,7 @@ String pinLabels2[28] = {
 };
 String pinTypeLabels[5] = {"INP", "SW", "OUT", "ANA", "PWM"};
 
-// Menu system strings
+// Menu system string arrays
 String menuTitles[10] = {
   "MENU", "SELECT PIN", "SELECT TYPE", "SET SOURCE", "PWM", "SET TIMERS", "", "", "MULTIPLIER", "BRIGHTNESS"
 };
@@ -209,7 +210,7 @@ void setupPins() {
 // Function to read and process all pin states
 void readPins() {
   static int smoothedValues[28] = {0}; // smoothed analog values
-  const float smoothingFactor = 0.1;   // adjust as needed (range: 0.0 to 1.0)
+  const float smoothingFactor = 0.05;  // adjust as needed (range: 0.00 to 1.0)
   static unsigned long lastModeToggleTime = 0;
   pwmChannel = 1;
 
@@ -275,7 +276,7 @@ void readPins() {
       }
     }
 
-    if(pinTypes[i] == 4) { // analog input
+    if(pinTypes[i] == 4) { // analog input (smoothed)
       int rawValue = analogRead(pinLabels1[i].toInt());
       smoothedValues[i] = smoothedValues[i] * (1.0 - smoothingFactor) + rawValue * smoothingFactor;
       pinStates[i] = map(smoothedValues[i], 0, 4095, 0, 255);
